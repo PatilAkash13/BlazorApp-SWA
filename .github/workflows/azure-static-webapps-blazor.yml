@@ -3,7 +3,7 @@ name: Build and deploy Blazor WASM to Azure Static Web Apps
 on:
   push:
     branches:
-      - master        # change if your default branch is 'master' or other
+      - master
   workflow_dispatch:
 
 jobs:
@@ -19,21 +19,35 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore and build
+      - name: Find the Blazor .csproj file
+        id: find_csproj
         run: |
-          dotnet restore
-          dotnet build --configuration Release
+          echo "Searching for .csproj..."
+          csproj=$(find . -name "*.csproj" -print -quit)
+          if [ -z "$csproj" ]; then
+            echo "No .csproj found, failing."
+            exit 1
+          fi
+          echo "Found csproj: $csproj"
+          # Save path for next steps
+          echo "csproj_path=$csproj" >> $GITHUB_OUTPUT
+
+      - name: Restore and build (uses discovered csproj)
+        run: |
+          echo "Using project: ${{ steps.find_csproj.outputs.csproj_path }}"
+          dotnet restore "${{ steps.find_csproj.outputs.csproj_path }}"
+          dotnet build "${{ steps.find_csproj.outputs.csproj_path }}" --configuration Release
 
       - name: Publish Blazor WebAssembly to 'publish'
-        # EDIT this line to point to your .csproj
         run: |
-          dotnet publish ./BlazorApp2.csproj -c Release -o ./publish
+          echo "Publishing project: ${{ steps.find_csproj.outputs.csproj_path }}"
+          dotnet publish "${{ steps.find_csproj.outputs.csproj_path }}" -c Release -o ./publish
 
       - name: Show published files (debug)
         run: |
-          echo "LIST publish directory:"
-          ls -la publish
-          echo "LIST publish/wwwroot directory:"
+          echo "publish dir listing:"
+          ls -la publish || true
+          echo "publish/wwwroot listing:"
           ls -la publish/wwwroot || true
 
       - name: Deploy to Azure Static Web Apps

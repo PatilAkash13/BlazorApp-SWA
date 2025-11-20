@@ -27,7 +27,7 @@ jobs:
       - name: Publish Blazor WebAssembly to 'publish'
         # EDIT this line to point to your .csproj
         run: |
-          dotnet publish ./YourProject.csproj -c Release -o ./publish
+          dotnet publish ./BlazorApp2.csproj -c Release -o ./publish
 
       - name: Show published files (debug)
         run: |
